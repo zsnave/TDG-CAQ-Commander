@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 WiFi Setup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 0.85rem; color: #64748b; margin-bottom: 28px; text-align: center; }
+
+  .card {
+    background: #1e2433;
+    border: 1px solid #2d3548;
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    padding: 10px 14px;
+    background: #13172080;
+    border: 1px solid #2d3548;
+    border-radius: 10px;
+    font-size: 0.85rem;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #475569;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .dot.connected  { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+  .dot.connecting { background: #f59e0b; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Connect button */
+  #btn-connect {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-bottom: 24px;
+  }
+  #btn-connect:hover:not(:disabled) { background: #2563eb; }
+  #btn-connect:active { transform: scale(0.98); }
+  #btn-connect:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Section label */
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 10px;
+  }
+
+  /* WiFi credential fields */
+  .wifi-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .field-label {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    width: 72px;
+    flex-shrink: 0;
+  }
+
+  .field-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #2d3548;
+    background: #131720;
+    color: #e2e8f0;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field-row input:focus { border-color: #3b82f6; }
+  .field-row input::placeholder { color: #475569; }
+  .field-row input:disabled { opacity: 0.35; }
+
+  .field-row button {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .field-row button:hover:not(:disabled) { background: #2563eb; }
+  .field-row button:active { transform: scale(0.97); }
+  .field-row button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Show/hide password toggle */
+  .pass-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+  }
+  .pass-wrapper input {
+    flex: 1;
+    padding-right: 40px;
+  }
+  .toggle-vis {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+  }
+  .toggle-vis:hover { color: #94a3b8; }
+
+  /* Send both button */
+  #btn-send-both {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    background: #16a34a;
+    color: white;
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-bottom: 24px;
+  }
+  #btn-send-both:hover:not(:disabled) { background: #15803d; }
+  #btn-send-both:active { transform: scale(0.98); }
+  #btn-send-both:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Utility commands */
+  .util-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .util-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid #2d3548;
+    background: #252b3b;
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .util-btn:hover:not(:disabled) { background: #2e3650; border-color: #3b82f6; color: #e2e8f0; }
+  .util-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .util-btn.danger:hover:not(:disabled) { border-color: #dc2626; color: #fca5a5; background: #2e2030; }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid #2d3548;
+    margin: 0 0 20px;
+  }
+
+  /* Custom command */
+  .custom-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .custom-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #2d3548;
+    background: #131720;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-family: ui-monospace, monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .custom-row input:focus { border-color: #3b82f6; }
+  .custom-row input::placeholder { color: #475569; font-family: system-ui, sans-serif; }
+  .custom-row input:disabled { opacity: 0.35; }
+  .custom-row button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .custom-row button:hover:not(:disabled) { background: #2563eb; }
+  .custom-row button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Log */
+  .log-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .log-clear {
+    background: none;
+    border: none;
+    color: #475569;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .log-clear:hover { color: #94a3b8; }
+
+  #log {
+    background: #131720;
+    border: 1px solid #2d3548;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    height: 150px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+  .entry { line-height: 1.7; }
+  .entry.sent  { color: #60a5fa; }
+  .entry.recv  { color: #4ade80; }
+  .entry.info  { color: #94a3b8; }
+  .entry.error { color: #f87171; }
+  .entry.ok    { color: #34d399; }
+  .ts { color: #334155; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<h1>ESP32 WiFi Setup</h1>
+<p class="subtitle">Configure your device's WiFi credentials over Bluetooth</p>
+
+<div class="card">
+
+  <!-- Status -->
+  <div class="status-bar">
+    <div class="dot" id="dot"></div>
+    <span id="status-text">Not connected</span>
+  </div>
+
+  <!-- Connect -->
+  <button id="btn-connect" onclick="toggleConnect()">Connect to ESP32</button>
+
+  <!-- WiFi credentials -->
+  <div class="section-label">WiFi credentials</div>
+  <div class="wifi-form">
+
+    <div class="field-row">
+      <span class="field-label">Network</span>
+      <input id="ssid-input" type="text" placeholder="Enter WiFi network name" disabled>
+      <button disabled id="btn-ssid" onclick="sendSSID()">Set</button>
+    </div>
+
+    <div class="field-row">
+      <span class="field-label">Password</span>
+      <div class="pass-wrapper">
+        <input id="pass-input" type="password" placeholder="Enter WiFi password" disabled>
+        <button class="toggle-vis" onclick="togglePassVis()" tabindex="-1" title="Show/hide password">👁</button>
+      </div>
+      <button disabled id="btn-pass" onclick="sendPass()">Set</button>
+    </div>
+
+  </div>
+
+  <!-- Send both at once -->
+  <button id="btn-send-both" disabled onclick="sendBoth()">Set network &amp; password</button>
+
+  <!-- Utility commands -->
+  <div class="section-label">Device</div>
+  <div class="util-row">
+    <button class="util-btn" disabled id="btn-status" onclick="send('status')">Check status</button>
+    <button class="util-btn danger" disabled id="btn-clear" onclick="confirmClear()">Clear credentials</button>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Custom command -->
+  <div class="section-label">Custom command</div>
+  <div class="custom-row">
+    <input id="custom-input" type="text" placeholder="e.g. cn ssid MyNetwork" disabled
+           onkeydown="if(event.key==='Enter') sendCustom()">
+    <button disabled id="btn-custom" onclick="sendCustom()">Send</button>
+  </div>
+
+  <!-- Log -->
+  <div class="log-header">
+    <span>Log</span>
+    <button class="log-clear" onclick="clearLog()">Clear</button>
+  </div>
+  <div id="log"></div>
+
+</div>
+
+<script>
+const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+let device = null, rxChar = null;
+
+// ── UI helpers ───────────────────────────────────────────────
+function setStatus(state, text) {
+  document.getElementById('dot').className = 'dot' + (state ? ' ' + state : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+const CONTROLLED = ['btn-ssid','btn-pass','btn-send-both','btn-status',
+                    'btn-clear','btn-custom','ssid-input','pass-input','custom-input'];
+
+function setConnected(yes) {
+  CONTROLLED.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !yes;
+  });
+  const btn = document.getElementById('btn-connect');
+  btn.textContent = yes ? 'Disconnect' : 'Connect to ESP32';
+  btn.style.background = yes ? '#dc2626' : '#3b82f6';
+}
+
+function log(msg, type = 'info') {
+  const el  = document.getElementById('log');
+  const now = new Date().toLocaleTimeString('en', { hour12: false });
+  const div = document.createElement('div');
+  div.className = 'entry ' + type;
+  div.innerHTML = `<span class="ts">${now}</span>${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+function togglePassVis() {
+  const inp = document.getElementById('pass-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── BLE ─────────────────────────────────────────────────────
+async function toggleConnect() {
+  if (device && device.gatt.connected) {
+    device.gatt.disconnect();
+    return;
+  }
+
+  if (!navigator.bluetooth) {
+    log('Web Bluetooth not supported. Use Chrome or Edge on desktop.', 'error');
+    return;
+  }
+
+  try {
+    setStatus('connecting', 'Scanning…');
+    log('Scanning for ESP32…');
+    document.getElementById('btn-connect').disabled = true;
+
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [NUS_SERVICE] }]
+    });
+
+    device.addEventListener('gattserverdisconnected', onDisconnect);
+    log(`Found: ${device.name || 'Unknown device'}`);
+
+    const server  = await device.gatt.connect();
+    const service = await server.getPrimaryService(NUS_SERVICE);
+    rxChar        = await service.getCharacteristic(NUS_RX);
+
+    const txChar  = await service.getCharacteristic(NUS_TX);
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', onNotify);
+
+    setStatus('connected', `Connected — ${device.name || 'ESP32'}`);
+    setConnected(true);
+    log(`Connected to ${device.name || 'ESP32'}`, 'recv');
+  } catch (err) {
+    setStatus('', 'Not connected');
+    log('Error: ' + err.message, 'error');
+  } finally {
+    document.getElementById('btn-connect').disabled = false;
+  }
+}
+
+function onDisconnect() {
+  rxChar = null;
+  setStatus('', 'Disconnected');
+  setConnected(false);
+  log('Disconnected from device', 'error');
+}
+
+function onNotify(event) {
+  const val  = new TextDecoder().decode(event.target.value);
+  const type = val.startsWith('OK') ? 'ok' : val.startsWith('ERROR') ? 'error' : 'recv';
+  log('← ' + val, type);
+}
+
+async function send(cmd) {
+  if (!rxChar) return;
+  try {
+    await rxChar.writeValueWithoutResponse(new TextEncoder().encode(cmd));
+    // Don't log the password value itself
+    const display = cmd.startsWith('cn pass ') ? 'cn pass ••••••••' : cmd;
+    log('→ ' + display, 'sent');
+  } catch (err) {
+    log('Send error: ' + err.message, 'error');
+  }
+}
+
+// ── Command builders ─────────────────────────────────────────
+function sendSSID() {
+  const val = document.getElementById('ssid-input').value.trim();
+  if (!val) { log('Please enter a network name', 'error'); return; }
+  send('cn ssid ' + val);
+}
+
+function sendPass() {
+  const val = document.getElementById('pass-input').value;
+  if (!val) { log('Please enter a password', 'error'); return; }
+  send('cn pass ' + val);
+}
+
+async function sendBoth() {
+  const ssid = document.getElementById('ssid-input').value.trim();
+  const pass = document.getElementById('pass-input').value;
+  if (!ssid) { log('Please enter a network name', 'error'); return; }
+  if (!pass)  { log('Please enter a password', 'error'); return; }
+  await send('cn ssid ' + ssid);
+  // Small delay so the ESP32 processes them separately
+  await new Promise(r => setTimeout(r, 300));
+  await send('cn pass ' + pass);
+}
+
+function confirmClear() {
+  if (confirm('Clear all saved WiFi credentials on the device?')) {
+    send('clear');
+  }
+}
+
+function sendCustom() {
+  const inp = document.getElementById('custom-input');
+  const cmd = inp.value.trim();
+  if (cmd) { send(cmd); inp.value = ''; }
+}
+</script>
+</body>
+</html>
