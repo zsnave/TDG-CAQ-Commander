@@ -313,7 +313,7 @@
       <span class="field-label">Password</span>
       <div class="pass-wrapper">
         <input id="pass-input" type="password" placeholder="Enter WiFi password" disabled>
-        <button class="toggle-vis" onclick="togglePassVis()" tabindex="-1" title="Show/hide password">👁</button>
+        <button class="toggle-vis" onclick="togglePassVis()" tabindex="-1" title="Show/hide password"></button>
       </div>
       <button disabled id="btn-pass" onclick="sendPass()">Set</button>
     </div>
@@ -356,7 +356,7 @@ const NUS_TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 let device = null, rxChar = null;
 
-// ── UI helpers ───────────────────────────────────────────────
+// ---UI Helpers-----------------------------------------------------------------
 function setStatus(state, text) {
   document.getElementById('dot').className = 'dot' + (state ? ' ' + state : '');
   document.getElementById('status-text').textContent = text;
@@ -392,7 +392,7 @@ function togglePassVis() {
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
-// ── BLE ─────────────────────────────────────────────────────
+// ---BLE---------------------------------------------------------------------
 async function toggleConnect() {
   if (device && device.gatt.connected) {
     device.gatt.disconnect();
@@ -405,8 +405,8 @@ async function toggleConnect() {
   }
 
   try {
-    setStatus('connecting', 'Scanning…');
-    log('Scanning for ESP32…');
+    setStatus('connecting', 'Scanning');
+    log('Scanning for ESP32');
     document.getElementById('btn-connect').disabled = true;
 
     device = await navigator.bluetooth.requestDevice({
@@ -424,7 +424,7 @@ async function toggleConnect() {
     await txChar.startNotifications();
     txChar.addEventListener('characteristicvaluechanged', onNotify);
 
-    setStatus('connected', `Connected — ${device.name || 'ESP32'}`);
+    setStatus('connected', `Connected ${device.name || 'ESP32'}`);
     setConnected(true);
     log(`Connected to ${device.name || 'ESP32'}`, 'recv');
   } catch (err) {
@@ -453,14 +453,14 @@ async function send(cmd) {
   try {
     await rxChar.writeValueWithoutResponse(new TextEncoder().encode(cmd));
     // Don't log the password value itself
-    const display = cmd.startsWith('cn pass ') ? 'cn pass ••••••••' : cmd;
+    const display = cmd.startsWith('cn pass ') ? 'cn pass ' : cmd;
     log('→ ' + display, 'sent');
   } catch (err) {
     log('Send error: ' + err.message, 'error');
   }
 }
 
-// ── Command builders ─────────────────────────────────────────
+// ---Command Builders--------------------------------------------------------------
 function sendSSID() {
   const val = document.getElementById('ssid-input').value.trim();
   if (!val) { log('Please enter a network name', 'error'); return; }
