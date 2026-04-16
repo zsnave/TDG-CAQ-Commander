@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ESP32 WiFi Setup</title>
+<title>TDG CAQ WiFi Setup</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -285,7 +285,7 @@
 </head>
 <body>
 
-<h1>ESP32 WiFi Setup</h1>
+<h1>TDG CAQ WiFi Setup</h1>
 <p class="subtitle">Configure your device's WiFi credentials over Bluetooth</p>
 
 <div class="card">
@@ -297,7 +297,7 @@
   </div>
 
   <!-- Connect -->
-  <button id="btn-connect" onclick="toggleConnect()">Connect to ESP32</button>
+  <button id="btn-connect" onclick="toggleConnect()">Connect to CAQ</button>
 
   <!-- WiFi credentials -->
   <div class="section-label">WiFi credentials</div>
@@ -371,7 +371,7 @@ function setConnected(yes) {
     if (el) el.disabled = !yes;
   });
   const btn = document.getElementById('btn-connect');
-  btn.textContent = yes ? 'Disconnect' : 'Connect to ESP32';
+  btn.textContent = yes ? 'Disconnect' : 'Connect to CAQ';
   btn.style.background = yes ? '#dc2626' : '#3b82f6';
 }
 
@@ -406,7 +406,7 @@ async function toggleConnect() {
 
   try {
     setStatus('connecting', 'Scanning');
-    log('Scanning for ESP32');
+    log('Scanning for CAQ');
     document.getElementById('btn-connect').disabled = true;
 
     device = await navigator.bluetooth.requestDevice({
@@ -424,9 +424,9 @@ async function toggleConnect() {
     await txChar.startNotifications();
     txChar.addEventListener('characteristicvaluechanged', onNotify);
 
-    setStatus('connected', `Connected ${device.name || 'ESP32'}`);
+    setStatus('connected', `Connected ${device.name || 'CAQ'}`);
     setConnected(true);
-    log(`Connected to ${device.name || 'ESP32'}`, 'recv');
+    log(`Connected to ${device.name || 'CAQ'}`, 'recv');
   } catch (err) {
     setStatus('', 'Not connected');
     log('Error: ' + err.message, 'error');
