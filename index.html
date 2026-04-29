@@ -326,7 +326,7 @@
   <!-- Utility commands -->
   <div class="section-label">Device</div>
   <div class="util-row">
-    <button class="util-btn" disabled id="btn-status" onclick="send('status')">Check status</button>
+    <button class="util-btn" disabled id="btn-status" onclick="send('cq u')">Commit Changes</button>
     <button class="util-btn danger" disabled id="btn-clear" onclick="confirmClear()">Clear credentials</button>
   </div>
 
@@ -445,7 +445,7 @@ function onDisconnect() {
 function onNotify(event) {
   const val  = new TextDecoder().decode(event.target.value);
   const type = val.startsWith('OK') ? 'ok' : val.startsWith('ERROR') ? 'error' : 'recv';
-  log('← ' + val, type);
+  log('? ' + val, type);
 }
 
 async function send(cmd) {
@@ -454,7 +454,7 @@ async function send(cmd) {
     await rxChar.writeValueWithoutResponse(new TextEncoder().encode(cmd));
     // Don't log the password value itself
     const display = cmd.startsWith('cn pass ') ? 'cn pass ' : cmd;
-    log('→ ' + display, 'sent');
+    log('? ' + display, 'sent');
   } catch (err) {
     log('Send error: ' + err.message, 'error');
   }
@@ -484,9 +484,11 @@ async function sendBoth() {
   await send('cn pass ' + pass);
 }
 
-function confirmClear() {
+async function confirmClear() {
   if (confirm('Clear all saved WiFi credentials on the device?')) {
-    send('clear');
+	await send('cn ssid ""');
+	await new Promise(r => setTimeout(r, 300));
+	await send('cn pass ""');
   }
 }
 
