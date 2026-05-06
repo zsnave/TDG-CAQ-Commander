@@ -355,6 +355,7 @@ const NUS_RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const NUS_TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
 let device = null, rxChar = null;
+let rxBuffer = '';
 
 // ---UI Helpers-----------------------------------------------------------------
 function setStatus(state, text) {
@@ -437,15 +438,25 @@ async function toggleConnect() {
 
 function onDisconnect() {
   rxChar = null;
+  rxBuffer = '';
   setStatus('', 'Disconnected');
   setConnected(false);
   log('Disconnected from device', 'error');
 }
 
 function onNotify(event) {
-  const val  = new TextDecoder().decode(event.target.value);
-  const type = val.startsWith('OK') ? 'ok' : val.startsWith('ERROR') ? 'error' : 'recv';
-  log('? ' + val, type);
+  const chunk = new TextDecoder().decode(event.target.value);
+  rxBuffer += chunk;
+  
+  const lines = rxBuffer.split('\n');
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim();
+    if (line) {
+      log(line);
+    }
+  }
+  
+  rxBuffer = lines[lines.length - 1];
 }
 
 async function send(cmd) {
@@ -454,7 +465,7 @@ async function send(cmd) {
     await rxChar.writeValueWithoutResponse(new TextEncoder().encode(cmd));
     // Don't log the password value itself
     const display = cmd.startsWith('cn pass ') ? 'cn pass ' : cmd;
-    log('? ' + display, 'sent');
+    log(display, 'sent');
   } catch (err) {
     log('Send error: ' + err.message, 'error');
   }
