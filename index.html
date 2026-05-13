@@ -378,10 +378,11 @@ function setConnected(yes) {
 
 function log(msg, type = 'info') {
   const el  = document.getElementById('log');
-  const now = new Date().toLocaleTimeString('en', { hour12: false });
+//  const now = new Date().toLocaleTimeString('en', { hour12: false });
   const div = document.createElement('div');
   div.className = 'entry ' + type;
-  div.innerHTML = `<span class="ts">${now}</span>${msg}`;
+//  div.innerHTML = `<span class="ts">${now}</span>${msg}`;
+  div.textContent = msg;
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
@@ -438,25 +439,33 @@ async function toggleConnect() {
 
 function onDisconnect() {
   rxChar = null;
-  rxBuffer = '';
+//  rxBuffer = '';
   setStatus('', 'Disconnected');
   setConnected(false);
   log('Disconnected from device', 'error');
 }
 
-function onNotify(event) {
+//  Need to break at EOLs to get "log()" to do newlines, since LF displays as SPACE
+//function onNotify(event)
+//{
+//  const chunk = new TextDecoder().decode(event.target.value);
+//  log( chunk );
+//}
+function onNotify(event)
+{
   const chunk = new TextDecoder().decode(event.target.value);
-  rxBuffer += chunk;
+//  rxBuffer += chunk;
   
-  const lines = rxBuffer.split('\n');
-  for (let i = 0; i < lines.length - 1; i++) {
+//  const lines = rxBuffer.split('\n');
+  const lines = chunk.split('\n');
+  for (let i = 0; i < lines.length; i++)
+  {
     const line = lines[i].trim();
-    if (line) {
+    if (line)
+	{
       log(line);
     }
   }
-  
-  rxBuffer = lines[lines.length - 1];
 }
 
 async function send(cmd) {
